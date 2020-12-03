@@ -25,7 +25,7 @@ namespace HttpPatterns.Tests
         {
             _actions.Enqueue(async (ct) =>
             {
-                ct.ThrowIfCancellationRequested();
+                // Just wait one second more than the timeout set to the HttpClient instance
                 await Task.Delay(timeAfterWhichWeShouldTimeout.Add(TimeSpan.FromSeconds(1)), ct);
                 throw new Exception("Should have timeout before this exception");
             });

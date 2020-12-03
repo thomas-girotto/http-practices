@@ -18,7 +18,10 @@ namespace HttpPatterns.Tests
         private (UserController sut, FakeMessageHandler fakeHttpHandler) Setup()
         {
             var fakeHandler = new FakeMessageHandler();
-            var httpClient = new UserHttpClient(new HttpClient(fakeHandler) { BaseAddress = new Uri("http://just_a_valid_uri") });
+            var innerHttpClient = new HttpClient(fakeHandler) { BaseAddress = new Uri("http://just_a_valid_uri") };
+            innerHttpClient.Timeout = httpClientTimeout;
+            var httpClient = new UserHttpClient(innerHttpClient);
+            
             var service = new UserService(httpClient);
             var controller = new UserController(service);
 
@@ -79,9 +82,11 @@ namespace HttpPatterns.Tests
             // Arrange
             var (sut, fakeHandler) = Setup();
             fakeHandler.WillWaitForTheCancellationTokenToBeCancelled();
+            var requestCts = new CancellationTokenSource();
+            requestCts.Cancel();
 
             // Act
-            var result = await sut.GetCompanies("prenom.nom@sgcib.com");
+            var result = await sut.GetCompanies("prenom.nom@sgcib.com", requestCts.Token);
 
             // Assert
             result

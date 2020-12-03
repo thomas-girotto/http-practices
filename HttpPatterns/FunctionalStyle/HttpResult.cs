@@ -45,15 +45,6 @@ namespace HttpPatterns.FunctionalStyle
 
                 var httpResponseMessage = await httpCall();
 
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return HttpResult<TSuccess>.FromError(ErrorKind.ClientClosedRequest);
-                }
-
-                if (httpResponseMessage == null)
-                {
-                    return new HttpResult<TSuccess>(ErrorKind.TechnicalError);
-                }
                 if (httpResponseMessage.IsSuccessStatusCode)
                 {
                     var result = await httpResponseMessage.Content.ReadFromJsonAsync<TSuccess>();
@@ -72,11 +63,9 @@ namespace HttpPatterns.FunctionalStyle
                     };
                 }
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException)
             {
-                return ex.CancellationToken.IsCancellationRequested
-                    ? new HttpResult<TSuccess>(ErrorKind.ClientClosedRequest)
-                    : new HttpResult<TSuccess>(ErrorKind.Timeout);
+                return new HttpResult<TSuccess>(ErrorKind.Timeout);
             }
             catch (Exception)
             {
