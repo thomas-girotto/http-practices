@@ -94,38 +94,5 @@ namespace HttpPatterns.Tests
                 .Which.StatusCode
                 .Should().Be(499);
         }
-
-        [Fact]
-        public async Task TestRequestAborted()
-        {
-            // Arrange
-            var timeoutCts = new CancellationTokenSource();
-            timeoutCts.CancelAfter(200);
-            var requestAbortedCts = new CancellationTokenSource();
-            var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, requestAbortedCts.Token);
-
-            // Act
-            requestAbortedCts.Cancel();
-            Func<Task> action = async () => await Task.Delay(1000, combinedCts.Token);
-
-            // Assert
-            action.Should().Throw<OperationCanceledException>().Which.CancellationToken.IsCancellationRequested.Should().BeTrue();
-        }
-
-        [Fact]
-        public async Task TestTimeout()
-        {
-            // Arrange
-            var timeoutCts = new CancellationTokenSource();
-            timeoutCts.CancelAfter(200);
-            var requestAbortedCts = new CancellationTokenSource();
-            var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, requestAbortedCts.Token);
-
-            // Act
-            Func<Task> action = async () => await Task.Delay(1000, combinedCts.Token);
-
-            // Assert
-            action.Should().Throw<OperationCanceledException>().Which.CancellationToken.IsCancellationRequested.Should().BeTrue();
-        }
     }
 }
