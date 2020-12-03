@@ -24,12 +24,12 @@ namespace HttpPatterns.FunctionalStyle
             Error = error;
         }
 
-        public static HttpResult<TSuccess> FromSuccess(TSuccess success)
+        private static HttpResult<TSuccess> FromSuccess(TSuccess success)
         {
             return new HttpResult<TSuccess>(success);
         }
 
-        public static HttpResult<TSuccess> FromError(ErrorKind error)
+        private static HttpResult<TSuccess> FromError(ErrorKind error)
         {
             return new HttpResult<TSuccess>(error);
         }
@@ -48,20 +48,14 @@ namespace HttpPatterns.FunctionalStyle
                 if (httpResponseMessage.IsSuccessStatusCode)
                 {
                     var result = await httpResponseMessage.Content.ReadFromJsonAsync<TSuccess>();
-                    if (result == null)
-                    {
-                        return new HttpResult<TSuccess>(ErrorKind.BackendNotFound);
-                    }
                     return new HttpResult<TSuccess>(result);
                 }
-                else
+                
+                return httpResponseMessage.StatusCode switch
                 {
-                    return httpResponseMessage.StatusCode switch
-                    {
-                        HttpStatusCode.NotFound => new HttpResult<TSuccess>(ErrorKind.BackendNotFound),
-                        _ => new HttpResult<TSuccess>(ErrorKind.BackendOtherNonSuccessStatusCode),
-                    };
-                }
+                    HttpStatusCode.NotFound => new HttpResult<TSuccess>(ErrorKind.NotFound),
+                    _ => new HttpResult<TSuccess>(ErrorKind.BackendError),
+                };
             }
             catch (OperationCanceledException)
             {
@@ -73,7 +67,7 @@ namespace HttpPatterns.FunctionalStyle
             }
         }
 
-        public async Task<HttpResult<TOther>> MatchAsync<TOther>(Func<TSuccess, Task<HttpResult<TOther>>> asyncFunc) where TOther: notnull
+        public async Task<HttpResult<TOther>> SelectMany<TOther>(Func<TSuccess, Task<HttpResult<TOther>>> asyncFunc) where TOther: notnull
         {
             if (Error != null)
             {
@@ -82,7 +76,7 @@ namespace HttpPatterns.FunctionalStyle
             return await asyncFunc(Response!);
         }
 
-        public HttpResult<TOther> Match<TOther>(Func<TSuccess, TOther> action) where TOther : notnull
+        public HttpResult<TOther> Select<TOther>(Func<TSuccess, TOther> action) where TOther : notnull
         {
             if (Error != null)
             {
@@ -95,12 +89,12 @@ namespace HttpPatterns.FunctionalStyle
         {
             return (Error, Response) switch
             {
-                (ErrorKind.BackendNotFound, _) => new NotFoundResult(),
+                var (_, result) when result is not null => new OkObjectResult(result),
+                (ErrorKind.NotFound, _) => new NotFoundResult(),
+                (ErrorKind.BackendError, _) => new StatusCodeResult(StatusCodes.Status502BadGateway),
                 (ErrorKind.Timeout, _) => new StatusCodeResult(StatusCodes.Status504GatewayTimeout),
                 (ErrorKind.ClientClosedRequest, _) => new StatusCodeResult(499),
                 (ErrorKind.TechnicalError, _) => new StatusCodeResult(StatusCodes.Status500InternalServerError),
-                (ErrorKind.BackendOtherNonSuccessStatusCode, _) => new StatusCodeResult(StatusCodes.Status502BadGateway),
-                var (_, result) when result is not null => new OkObjectResult(result),
                 (_, _) => throw new NotImplementedException("Forgot a case"),
             };
         }
@@ -111,7 +105,7 @@ namespace HttpPatterns.FunctionalStyle
         TechnicalError,
         Timeout,
         ClientClosedRequest,
-        BackendNotFound,
-        BackendOtherNonSuccessStatusCode
+        NotFound,
+        BackendError
     }
 }

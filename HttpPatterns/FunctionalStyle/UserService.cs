@@ -21,9 +21,8 @@ namespace HttpPatterns.FunctionalStyle
 
         public async Task<HttpResult<List<Company>>> GetCompanies(string email, CancellationToken cancellationToken)
         {
-            return await (await httpClient.GetUser(email, cancellationToken))
-                .Match(user => user.MainCompanyBdrId)
-                .MatchAsync(companyId => httpClient.GetCompanies(companyId, cancellationToken));
+            return await httpClient.GetUser(email, cancellationToken)
+                .SelectMany(user => httpClient.GetCompanies(user.MainCompanyBdrId, cancellationToken));
         }
     }
 }

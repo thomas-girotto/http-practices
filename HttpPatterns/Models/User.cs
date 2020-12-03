@@ -10,7 +10,6 @@ namespace HttpPatterns.Models
         public string? Email { get; set; }
         public int MainCompanyBdrId { get; set; }
         public bool CanTrade { get; set; }
-        public List<Company>? Companies { get; set; }
     }
 
     public class Company

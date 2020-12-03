@@ -1,8 +1,10 @@
 using FluentAssertions;
 using HttpPatterns.FunctionalStyle;
+using HttpPatterns.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -13,7 +15,7 @@ namespace HttpPatterns.Tests
 {
     public class UserControllerTests
     {
-        private static TimeSpan httpClientTimeout = TimeSpan.FromMilliseconds(10);
+        private static TimeSpan httpClientTimeout = TimeSpan.FromSeconds(1);
 
         private (UserController sut, FakeMessageHandler fakeHttpHandler) Setup()
         {
@@ -26,6 +28,22 @@ namespace HttpPatterns.Tests
             var controller = new UserController(service);
 
             return (controller, fakeHandler);
+        }
+
+        [Fact]
+        public async Task Should_return_200_When_both_backend_calls_succeeds()
+        {
+            // Arrange
+            var (sut, fakeHandler) = Setup();
+            fakeHandler.WillReturnOk(new User { CanTrade = true, Email = "", MainCompanyBdrId = 1 }) ;
+            var companies = new List<Company> { new Company { CompanyBdrId = 1, Name = "SG" } };
+            fakeHandler.WillReturnOk(companies);
+
+            // Act
+            var result = await sut.GetCompanies("prenom.nom@sgcib.com");
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeEquivalentTo(companies);
         }
 
         [Fact]
@@ -77,7 +95,7 @@ namespace HttpPatterns.Tests
         }
 
         [Fact]
-        public async Task Should_return_499ClientClosedRequest_When_the_client_timeout_before_server_responds()
+        public async Task Should_return_499ClientClosedRequest_When_the_client_abort_request_before_http_call()
         {
             // Arrange
             var (sut, fakeHandler) = Setup();
