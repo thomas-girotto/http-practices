@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using HttpPatterns.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
@@ -98,14 +99,5 @@ namespace HttpPatterns.FunctionalStyle
                 (_, _) => throw new NotImplementedException("Forgot a case"),
             };
         }
-    }
-
-    public enum ErrorKind
-    {
-        TechnicalError,
-        Timeout,
-        ClientClosedRequest,
-        NotFound,
-        BackendError
     }
 }
